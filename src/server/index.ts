@@ -1,0 +1,144 @@
+import { Hono } from 'hono';
+import { requireEnv, type PortalEnv } from './env.js';
+import { getOrCreateSession } from './session.js';
+import {
+  createKeyForSubject,
+  listKeysForSubject,
+  revokeKeyForSubject,
+} from './keysProxy.js';
+
+type Variables = {
+  subjectId: string;
+};
+
+const app = new Hono<{ Bindings: PortalEnv; Variables: Variables }>();
+
+function wantsSecureCookie(request: Request, env: PortalEnv): boolean {
+  const origin = env.PUBLIC_APP_ORIGIN || '';
+  if (origin.startsWith('https://')) return true;
+  const host = new URL(request.url).hostname;
+  return host !== 'localhost' && host !== '127.0.0.1';
+}
+
+function json(data: unknown, status = 200, headers?: HeadersInit): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+  });
+}
+
+app.use('/api/*', async (c, next) => {
+  try {
+    const { sessionSecret } = requireEnv(c.env);
+    const { session, setCookie } = await getOrCreateSession(
+      c.req.raw,
+      sessionSecret,
+      wantsSecureCookie(c.req.raw, c.env),
+    );
+    c.set('subjectId', session.subjectId);
+    await next();
+    if (setCookie) {
+      c.header('Set-Cookie', setCookie);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message, code: 'CONFIG_ERROR' }, 500);
+  }
+});
+
+app.get('/api/session', async (c) => {
+  const { sessionSecret } = requireEnv(c.env);
+  const { session, setCookie } = await getOrCreateSession(
+    c.req.raw,
+    sessionSecret,
+    wantsSecureCookie(c.req.raw, c.env),
+  );
+  if (setCookie) {
+    c.header('Set-Cookie', setCookie);
+  }
+  return json({
+    subjectId: session.subjectId,
+    createdAt: session.createdAt,
+  });
+});
+
+app.get('/api/keys', async (c) => {
+  try {
+    const { apiBase, adminSecret } = requireEnv(c.env);
+    const subjectId = c.get('subjectId');
+    const keys = await listKeysForSubject(apiBase, adminSecret, subjectId);
+    return json({
+      subjectId,
+      keys: keys.filter((k) => !k.revokedAt),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message, code: 'UPSTREAM_ERROR' }, 502);
+  }
+});
+
+app.post('/api/keys', async (c) => {
+  try {
+    const { apiBase, adminSecret } = requireEnv(c.env);
+    const subjectId = c.get('subjectId');
+    let label: string | undefined;
+    try {
+      const body = await c.req.json();
+      if (body && typeof body === 'object' && typeof (body as { label?: unknown }).label === 'string') {
+        label = (body as { label: string }).label;
+      }
+    } catch {
+      // empty body ok
+    }
+    // Never trust client subjectId — only session.
+    const result = await createKeyForSubject(apiBase, adminSecret, subjectId, label);
+    return json(result, 201);
+  } catch (err) {
+    const e = err as Error & { status?: number; body?: string };
+    const status = e.status === 409 ? 409 : e.status === 429 ? 429 : 502;
+    let code = 'UPSTREAM_ERROR';
+    if (e.status === 409) code = 'MAX_KEYS';
+    if (e.status === 429) code = 'RATE_LIMITED';
+    return json({ error: e.message, code }, status);
+  }
+});
+
+app.delete('/api/keys/:id', async (c) => {
+  try {
+    const { apiBase, adminSecret } = requireEnv(c.env);
+    const subjectId = c.get('subjectId');
+    const id = c.req.param('id');
+    if (!id.startsWith('key_')) {
+      return json({ error: 'Invalid key id', code: 'VALIDATION_ERROR' }, 400);
+    }
+    const key = await revokeKeyForSubject(apiBase, adminSecret, subjectId, id);
+    return json({ key, revoked: true });
+  } catch (err) {
+    const e = err as Error & { status?: number };
+    const status = e.status === 404 ? 404 : 502;
+    return json(
+      { error: e.message, code: status === 404 ? 'NOT_FOUND' : 'UPSTREAM_ERROR' },
+      status,
+    );
+  }
+});
+
+app.get('/api/health', (c) => json({ status: 'ok', service: 'clocktower-developers' }));
+
+export default {
+  async fetch(request: Request, env: PortalEnv, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/')) {
+      return app.fetch(request, env, ctx);
+    }
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+    return new Response('Not found', { status: 404 });
+  },
+};
+
+export { app };
