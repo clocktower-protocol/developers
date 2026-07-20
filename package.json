@@ -1,0 +1,38 @@
+{
+  "name": "clocktower-developers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Developer portal for Clocktower REST API keys",
+  "scripts": {
+    "dev": "concurrently -k -n client,server -c cyan,magenta \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "vite",
+    "dev:server": "wrangler dev src/server/index.ts --port 8788",
+    "build": "tsc -p tsconfig.client.json --noEmit && vite build && tsc -p tsconfig.server.json --noEmit",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.client.json --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.12.22",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260714.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.8",
+    "wrangler": "^4.103.0"
+  }
+}

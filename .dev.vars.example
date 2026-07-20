@@ -1,0 +1,6 @@
+# Copy to .dev.vars (gitignored). Never use VITE_ for secrets.
+
+CLOCKTOWER_API_BASE=http://127.0.0.1:8787
+DEVELOPER_KEYS_ADMIN_SECRET=replace-with-same-secret-as-api-min-32-chars
+SESSION_SECRET=replace-with-random-32-byte-hex-or-longer-string
+PUBLIC_APP_ORIGIN=http://127.0.0.1:5173
