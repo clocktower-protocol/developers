@@ -175,12 +175,16 @@
   font-size: 1rem;
 }
 
-.help pre {
+.help pre,
+.curlExample {
   margin: 0.75rem 0;
   padding: 0.75rem;
   background: #121214;
   border-radius: 6px;
   overflow-x: auto;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .footer {

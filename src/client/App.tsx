@@ -145,8 +145,9 @@ export default function App() {
             Send the key on REST requests only. Never commit it or expose it in frontend apps that
             call the API from a browser without a backend.
           </p>
-          <pre className="mono">{`curl -H "Authorization: Bearer ctk_…" \\
-  https://api.clocktower.finance/catalog`}</pre>
+          <pre className={`mono ${styles.curlExample}`}>
+            {`curl -H "Authorization: Bearer ctk_…" https://api.clocktower.finance/catalog`}
+          </pre>
           <p>
             <a href={DOCS_REST} target="_blank" rel="noreferrer">
               REST authentication docs
