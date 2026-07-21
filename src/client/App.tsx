@@ -190,18 +190,27 @@ export default function App() {
             <pre className={`mono ${styles.curlExample}`}>{CURL_EXAMPLE}</pre>
             <button
               type="button"
-              className={styles.copyIconBtn}
+              className={`${styles.copyIconBtn} ${curlCopied ? styles.copyIconBtnSuccess : ''}`}
               title={curlCopied ? 'Copied' : 'Copy curl command'}
               aria-label={curlCopied ? 'Copied' : 'Copy curl command'}
               onClick={async () => {
                 const ok = await copyText(CURL_EXAMPLE);
                 if (ok) {
                   setCurlCopied(true);
-                  window.setTimeout(() => setCurlCopied(false), 1500);
+                  window.setTimeout(() => setCurlCopied(false), 2000);
                 }
               }}
             >
-              <CopyIcon />
+              {curlCopied ? (
+                <>
+                  <CheckIcon />
+                  <span className={styles.copiedLabel} role="status" aria-live="polite">
+                    Copied
+                  </span>
+                </>
+              ) : (
+                <CopyIcon />
+              )}
             </button>
           </div>
           <p className={styles.helpNote}>
