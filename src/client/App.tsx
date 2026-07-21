@@ -146,8 +146,12 @@ export default function App() {
             call the API from a browser without a backend.
           </p>
           <pre className={`mono ${styles.curlExample}`}>
-            {`curl -H "Authorization: Bearer ctk_…" https://api.clocktower.finance/catalog`}
+            {`curl -H "Authorization: Bearer ctk_<YOUR_API_KEY>" https://api.clocktower.finance/catalog`}
           </pre>
+          <p className={styles.helpNote}>
+            Replace <code className="mono">ctk_&lt;YOUR_API_KEY&gt;</code> with the full secret
+            shown once when you create a key (it always starts with <code className="mono">ctk_</code>).
+          </p>
           <p>
             <a href={DOCS_REST} target="_blank" rel="noreferrer">
               REST authentication docs
