@@ -198,10 +198,28 @@
   overflow-wrap: normal;
 }
 
-.copyIconBtn {
+.copyControls {
   position: absolute;
   top: 0.45rem;
   right: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.copiedLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--color-success);
+  background: rgba(127, 217, 154, 0.12);
+  border: 1px solid rgba(127, 217, 154, 0.35);
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+  white-space: nowrap;
+}
+
+.copyIconBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -218,6 +236,18 @@
   color: var(--color-primary);
   border-color: var(--color-primary-darker);
   background: var(--color-bg-hover);
+}
+
+.copyIconBtnSuccess {
+  color: var(--color-success);
+  border-color: rgba(127, 217, 154, 0.55);
+  background: rgba(127, 217, 154, 0.12);
+}
+
+.copyIconBtnSuccess:hover {
+  color: var(--color-success);
+  border-color: rgba(127, 217, 154, 0.7);
+  background: rgba(127, 217, 154, 0.18);
 }
 
 .footer {
