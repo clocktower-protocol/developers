@@ -4,3 +4,16 @@ CLOCKTOWER_API_BASE=http://127.0.0.1:8787
 DEVELOPER_KEYS_ADMIN_SECRET=replace-with-same-secret-as-api-min-32-chars
 SESSION_SECRET=replace-with-random-32-byte-hex-or-longer-string
 PUBLIC_APP_ORIGIN=http://127.0.0.1:5173
+
+# OAuth apps — callback URLs:
+#   http://127.0.0.1:5173/api/auth/github/callback
+#   http://127.0.0.1:5173/api/auth/google/callback
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Email magic links. EMAIL_DEV_ECHO=true returns the link in JSON (local only).
+EMAIL_FROM=Clocktower Developers <noreply@localhost>
+RESEND_API_KEY=
+EMAIL_DEV_ECHO=true
