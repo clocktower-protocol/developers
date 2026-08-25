@@ -225,9 +225,7 @@ export default function App() {
             <section className={styles.hero}>
               <h1>Developer API keys</h1>
               <p>
-                Free REST API keys for integrators. Higher limits than anonymous access. Keys
-                authenticate with <code className="mono">Authorization: Bearer ctk_…</code>. MCP
-                agents continue to use x402 — not API keys.
+                Free REST API keys for integrators. Higher limits than anonymous access.
               </p>
             </section>
 
