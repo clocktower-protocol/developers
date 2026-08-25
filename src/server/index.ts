@@ -1,6 +1,9 @@
 import { Hono } from 'hono';
-import { requireEnv, type PortalEnv } from './env.js';
-import { getOrCreateSession } from './session.js';
+import { requireKeysEnv, requireSessionSecret, type PortalEnv } from './env.js';
+import { json } from './http.js';
+import { createAuthApp, sessionResponse } from './auth.js';
+import { getSession, wantsSecureCookie } from './session.js';
+import type { IdentityStore } from './identity.js';
 import {
   createKeyForSubject,
   listKeysForSubject,
@@ -9,65 +12,67 @@ import {
 
 type Variables = {
   subjectId: string;
+  identityStore?: IdentityStore;
 };
 
 const app = new Hono<{ Bindings: PortalEnv; Variables: Variables }>();
 
-function wantsSecureCookie(request: Request, env: PortalEnv): boolean {
-  const origin = env.PUBLIC_APP_ORIGIN || '';
-  if (origin.startsWith('https://')) return true;
-  const host = new URL(request.url).hostname;
-  return host !== 'localhost' && host !== '127.0.0.1';
-}
+app.get('/api/health', (c) => json({ status: 'ok', service: 'clocktower-developers' }));
 
-function json(data: unknown, status = 200, headers?: HeadersInit): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-  });
-}
+app.onError((err, c) => {
+  const message = err instanceof Error ? err.message : String(err);
+  if (message.includes('D1_ERROR') || message.includes('no such table')) {
+    return json({ error: 'Identity database is not migrated', code: 'DB_ERROR' }, 500);
+  }
+  return json({ error: 'Internal error', code: 'INTERNAL_ERROR' }, 500);
+});
 
-app.use('/api/*', async (c, next) => {
+app.route('/api/auth', createAuthApp());
+
+app.get('/api/session', async (c) => {
   try {
-    const { sessionSecret } = requireEnv(c.env);
-    const { session, setCookie } = await getOrCreateSession(
-      c.req.raw,
-      sessionSecret,
-      wantsSecureCookie(c.req.raw, c.env),
-    );
-    c.set('subjectId', session.subjectId);
-    await next();
-    if (setCookie) {
-      c.header('Set-Cookie', setCookie);
-    }
+    const sessionSecret = requireSessionSecret(c.env);
+    const session = await getSession(c.req.raw, sessionSecret);
+    return json(sessionResponse(session));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return json({ error: message, code: 'CONFIG_ERROR' }, 500);
   }
 });
 
-app.get('/api/session', async (c) => {
-  const { sessionSecret } = requireEnv(c.env);
-  const { session, setCookie } = await getOrCreateSession(
-    c.req.raw,
-    sessionSecret,
-    wantsSecureCookie(c.req.raw, c.env),
-  );
-  if (setCookie) {
-    c.header('Set-Cookie', setCookie);
+app.use('/api/keys', async (c, next) => {
+  try {
+    const sessionSecret = requireSessionSecret(c.env);
+    const session = await getSession(c.req.raw, sessionSecret);
+    if (!session) {
+      return json({ error: 'Sign in required', code: 'UNAUTHENTICATED' }, 401);
+    }
+    c.set('subjectId', session.subjectId);
+    await next();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message, code: 'CONFIG_ERROR' }, 500);
   }
-  return json({
-    subjectId: session.subjectId,
-    createdAt: session.createdAt,
-  });
+});
+
+app.use('/api/keys/*', async (c, next) => {
+  try {
+    const sessionSecret = requireSessionSecret(c.env);
+    const session = await getSession(c.req.raw, sessionSecret);
+    if (!session) {
+      return json({ error: 'Sign in required', code: 'UNAUTHENTICATED' }, 401);
+    }
+    c.set('subjectId', session.subjectId);
+    await next();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message, code: 'CONFIG_ERROR' }, 500);
+  }
 });
 
 app.get('/api/keys', async (c) => {
   try {
-    const { apiBase, adminSecret } = requireEnv(c.env);
+    const { apiBase, adminSecret } = requireKeysEnv(c.env);
     const subjectId = c.get('subjectId');
     const keys = await listKeysForSubject(apiBase, adminSecret, subjectId);
     return json({
@@ -82,7 +87,7 @@ app.get('/api/keys', async (c) => {
 
 app.post('/api/keys', async (c) => {
   try {
-    const { apiBase, adminSecret } = requireEnv(c.env);
+    const { apiBase, adminSecret } = requireKeysEnv(c.env);
     const subjectId = c.get('subjectId');
     let label: string | undefined;
     try {
@@ -108,7 +113,7 @@ app.post('/api/keys', async (c) => {
 
 app.delete('/api/keys/:id', async (c) => {
   try {
-    const { apiBase, adminSecret } = requireEnv(c.env);
+    const { apiBase, adminSecret } = requireKeysEnv(c.env);
     const subjectId = c.get('subjectId');
     const id = c.req.param('id');
     if (!id.startsWith('key_')) {
@@ -126,8 +131,6 @@ app.delete('/api/keys/:id', async (c) => {
   }
 });
 
-app.get('/api/health', (c) => json({ status: 'ok', service: 'clocktower-developers' }));
-
 export default {
   async fetch(request: Request, env: PortalEnv, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -142,3 +145,4 @@ export default {
 };
 
 export { app };
+export { wantsSecureCookie };

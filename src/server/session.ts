@@ -1,26 +1,21 @@
+import { bytesToHex, hexToBytes } from './cryptoUtil.js';
+
+export type AuthProvider = 'github' | 'google' | 'email';
+
 export type SessionPayload = {
   subjectId: string;
   createdAt: number;
+  provider: AuthProvider;
+  email?: string;
 };
 
 export const SESSION_COOKIE = 'ct_dev_session';
+export const OAUTH_STATE_COOKIE = 'ct_oauth_state';
+export const OAUTH_VERIFIER_COOKIE = 'ct_oauth_verifier';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 90; // 90 days
+const OAUTH_COOKIE_TTL_SECONDS = 60 * 10;
 
-function bytesToHex(bytes: ArrayBuffer | Uint8Array): string {
-  const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  return Array.from(arr)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function hexToBytes(hex: string): Uint8Array {
-  const clean = hex.length % 2 === 0 ? hex : `0${hex}`;
-  const out = new Uint8Array(clean.length / 2);
-  for (let i = 0; i < out.length; i++) {
-    out[i] = Number.parseInt(clean.slice(i * 2, i * 2 + 2), 16);
-  }
-  return out;
-}
+const PROVIDERS = new Set<AuthProvider>(['github', 'google', 'email']);
 
 async function importHmacKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
@@ -64,6 +59,8 @@ export async function verifyPayload(
       return null;
     }
     if (typeof json.createdAt !== 'number') return null;
+    if (!PROVIDERS.has(json.provider)) return null;
+    if (json.email !== undefined && typeof json.email !== 'string') return null;
     return json;
   } catch {
     return null;
@@ -87,44 +84,68 @@ export function parseCookieHeader(header: string | null, name: string): string |
   return null;
 }
 
+function cookieParts(
+  name: string,
+  value: string,
+  opts: { secure: boolean; maxAge: number; path: string },
+): string[] {
+  const parts = [
+    `${name}=${encodeURIComponent(value)}`,
+    `Path=${opts.path}`,
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${opts.maxAge}`,
+  ];
+  if (opts.secure) parts.push('Secure');
+  return parts;
+}
+
 export function buildSessionCookie(
   value: string,
   opts: { secure: boolean; maxAge?: number } = { secure: true },
 ): string {
   const maxAge = opts.maxAge ?? SESSION_TTL_SECONDS;
-  const parts = [
-    `${SESSION_COOKIE}=${encodeURIComponent(value)}`,
-    'Path=/',
-    'HttpOnly',
-    'SameSite=Lax',
-    `Max-Age=${maxAge}`,
-  ];
-  if (opts.secure) {
-    parts.push('Secure');
-  }
-  return parts.join('; ');
+  return cookieParts(SESSION_COOKIE, value, { secure: opts.secure, maxAge, path: '/' }).join('; ');
 }
 
-export async function getOrCreateSession(
+export function buildOauthCookie(
+  name: string,
+  value: string,
+  opts: { secure: boolean; maxAge?: number } = { secure: true },
+): string {
+  const maxAge = opts.maxAge ?? OAUTH_COOKIE_TTL_SECONDS;
+  return cookieParts(name, value, {
+    secure: opts.secure,
+    maxAge,
+    path: '/api/auth',
+  }).join('; ');
+}
+
+export function clearSessionCookie(secure: boolean): string {
+  return cookieParts(SESSION_COOKIE, '', { secure, maxAge: 0, path: '/' }).join('; ');
+}
+
+export function wantsSecureCookie(request: Request, publicAppOrigin?: string): boolean {
+  const origin = publicAppOrigin || '';
+  if (origin.startsWith('https://')) return true;
+  const host = new URL(request.url).hostname;
+  return host !== 'localhost' && host !== '127.0.0.1';
+}
+
+export async function getSession(
   request: Request,
   sessionSecret: string,
-  secureCookie: boolean,
-): Promise<{ session: SessionPayload; setCookie?: string }> {
+): Promise<SessionPayload | null> {
   const existing = parseCookieHeader(request.headers.get('Cookie'), SESSION_COOKIE);
-  if (existing) {
-    const verified = await verifyPayload(sessionSecret, existing);
-    if (verified) {
-      return { session: verified };
-    }
-  }
+  if (!existing) return null;
+  return verifyPayload(sessionSecret, existing);
+}
 
-  const session: SessionPayload = {
-    subjectId: generateSubjectId(),
-    createdAt: Date.now(),
-  };
-  const token = await signPayload(sessionSecret, session);
-  return {
-    session,
-    setCookie: buildSessionCookie(token, { secure: secureCookie }),
-  };
+export async function createSessionCookieValue(
+  secret: string,
+  payload: SessionPayload,
+  secureCookie: boolean,
+): Promise<string> {
+  const token = await signPayload(secret, payload);
+  return buildSessionCookie(token, { secure: secureCookie });
 }

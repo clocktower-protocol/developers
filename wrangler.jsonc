@@ -11,6 +11,15 @@
   },
   "vars": {
     "CLOCKTOWER_API_BASE": "https://api.clocktower.finance",
-    "PUBLIC_APP_ORIGIN": "https://developers.clocktower.finance"
-  }
+    "PUBLIC_APP_ORIGIN": "https://developers.clocktower.finance",
+    "EMAIL_FROM": "Clocktower Developers <noreply@clocktower.finance>"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "clocktower-developers",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "migrations"
+    }
+  ]
 }
