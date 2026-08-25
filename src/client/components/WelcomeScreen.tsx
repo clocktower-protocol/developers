@@ -53,7 +53,7 @@ export function WelcomeScreen({ error, busy, sentTo, devLink, onEmailSubmit }: P
     <section className={styles.welcomeCard}>
       <h1>Sign in</h1>
       <p>
-        Free REST API keys for integrators. MCP agents keep using x402.
+        Free REST API keys for integrators.
       </p>
       {error && (
         <div className={styles.error} role="alert">

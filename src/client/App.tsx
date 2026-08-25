@@ -299,7 +299,7 @@ export default function App() {
       </main>
 
       <footer className={styles.footer}>
-        Clocktower Developers · linked from the docs site · not for MCP x402 keys
+        Clocktower Developers
       </footer>
 
       <CreateKeyModal
