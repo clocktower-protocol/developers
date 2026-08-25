@@ -4,7 +4,7 @@ Developer portal for Clocktower **REST API keys**. MCP is **not** in scope (x402
 
 ## Hard rules
 
-- **Never put `DEVELOPER_KEYS_ADMIN_SECRET`, OAuth client secrets, `RESEND_API_KEY`, or `SESSION_SECRET` in client code or `VITE_*` env.**
+- **Never put `DEVELOPER_KEYS_ADMIN_SECRET`, OAuth client secrets, or `SESSION_SECRET` in client code or `VITE_*` env.**
 - **Never trust client-supplied `subjectId` for mint/list/revoke** — only the signed session cookie.
 - Do not log API key tokens, magic-link tokens, OAuth codes, emails, or admin secrets.
 - Visual tokens should stay aligned with `clocktower-docs` (dark mode, Satoshi, `--color-primary: #87CEEB`, letter-spacing 1.5px).

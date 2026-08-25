@@ -61,29 +61,26 @@ async function sessionCookies(
 }
 
 export async function sendMagicLinkEmail(opts: {
-  apiKey: string;
+  email: NonNullable<PortalEnv['EMAIL']>;
   from: string;
   to: string;
   loginUrl: string;
 }): Promise<void> {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${opts.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: opts.from,
-      to: [opts.to],
-      subject: 'Sign in to Clocktower Developers',
-      text: `Open this link to sign in to Clocktower Developers:\n\n${opts.loginUrl}\n\nThis link expires in 15 minutes. If you did not request it, you can ignore this email.`,
-    }),
+  const safeUrl = opts.loginUrl
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/"/g, '&quot;');
+  await opts.email.send({
+    from: opts.from,
+    to: opts.to,
+    subject: 'Sign in to Clocktower Developers',
+    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Sign in to Clocktower Developers</h2>
+        <p>Open this link to sign in. It expires in 15 minutes.</p>
+        <p><a href="${safeUrl}">${safeUrl}</a></p>
+        <p style="color:#6b7280;font-size:14px;">If you did not request this, you can ignore this email.</p>
+      </div>`,
   });
-  if (!res.ok) {
-    const err = new Error('Failed to send sign-in email') as Error & { status?: number };
-    err.status = 502;
-    throw err;
-  }
 }
 
 async function githubProfile(accessToken: string): Promise<{ id: string; email: string | null }> {
@@ -248,14 +245,13 @@ export function createAuthApp(): Hono<{ Bindings: AuthBindings; Variables: AuthV
     const loginUrl = `${oauthRedirectUri(c.env, c.req.raw, 'email')}?token=${encodeURIComponent(token)}`;
     const echo = c.env.EMAIL_DEV_ECHO === 'true';
     const from = c.env.EMAIL_FROM || '';
-    const apiKey = c.env.RESEND_API_KEY || '';
 
     if (!echo) {
-      if (!apiKey || !from) {
+      if (!c.env.EMAIL || !from) {
         return json({ error: 'Email sign-in is not configured', code: 'CONFIG_ERROR' }, 503);
       }
       try {
-        await sendMagicLinkEmail({ apiKey, from, to: normalized, loginUrl });
+        await sendMagicLinkEmail({ email: c.env.EMAIL, from, to: normalized, loginUrl });
       } catch {
         return json({ error: 'Failed to send sign-in email', code: 'EMAIL_SEND_FAILED' }, 502);
       }

@@ -60,7 +60,7 @@ OAuth callback URLs for local apps:
 - `http://127.0.0.1:5173/api/auth/github/callback`
 - `http://127.0.0.1:5173/api/auth/google/callback`
 
-With `EMAIL_DEV_ECHO=true`, the UI shows the magic link so you can sign in without Resend.
+With `EMAIL_DEV_ECHO=true`, the UI shows the magic link so you can sign in without sending mail. Production uses the Cloudflare Email Service binding (`EMAIL`), same as clocktower-caller notifications.
 
 ### 3. Try a key
 
@@ -77,6 +77,7 @@ curl -H "Authorization: Bearer ctk_…" \
 |--------|-------------|
 | `npm run dev` | Vite + Wrangler concurrently |
 | `npm test` | Vitest |
+| `npm run db:migrate:local` | Apply D1 migrations to local SQLite |
 | `npm run build` | Typecheck + Vite build |
 | `npm run deploy` | Build + `wrangler deploy` |
 
@@ -90,7 +91,8 @@ curl -H "Authorization: Bearer ctk_…" \
 | `PUBLIC_APP_ORIGIN` | Worker | Cookie Secure when https; OAuth redirect origin |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | Worker | GitHub OAuth |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Worker | Google OAuth |
-| `RESEND_API_KEY` / `EMAIL_FROM` | Worker | Magic-link email |
+| `EMAIL` | `send_email` binding | Cloudflare Email Service (same as clocktower-caller) |
+| `EMAIL_FROM` | Worker | Verified sender on the onboarded domain |
 | `EMAIL_DEV_ECHO` | Worker | `true` returns the magic link in JSON (local only) |
 | `DB` | D1 binding | Users, identities, magic links |
 
@@ -105,9 +107,10 @@ wrangler secret put DEVELOPER_KEYS_ADMIN_SECRET
 wrangler secret put SESSION_SECRET
 wrangler secret put GITHUB_CLIENT_SECRET
 wrangler secret put GOOGLE_CLIENT_SECRET
-wrangler secret put RESEND_API_KEY
 npm run deploy
 ```
+
+Onboard the sending domain under Cloudflare Dashboard → **Email Sending** (Workers Paid), then set `EMAIL_FROM` to a verified address on that domain. There is no third-party email API key.
 
 Suggested host: `developers.clocktower.finance`. Add a docs navbar CTA when live.
 

@@ -13,7 +13,8 @@ GITHUB_CLIENT_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
-# Email magic links. EMAIL_DEV_ECHO=true returns the link in JSON (local only).
-EMAIL_FROM=Clocktower Developers <noreply@localhost>
-RESEND_API_KEY=
+# Email magic links via Cloudflare Email Service (send_email binding EMAIL).
+# EMAIL_FROM must be a verified sender on the onboarded domain (same as caller SENDER_ADDRESS).
+# EMAIL_DEV_ECHO=true returns the link in JSON and skips sending (local only).
+EMAIL_FROM=noreply@clocktower.finance
 EMAIL_DEV_ECHO=true

@@ -7,9 +7,17 @@ export type PortalEnv = {
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
-  RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
   EMAIL_DEV_ECHO?: string;
+  /** Cloudflare Email Service binding (`send_email` name EMAIL), same as clocktower-caller. */
+  EMAIL?: {
+    send(message: {
+      from: string;
+      to: string;
+      subject: string;
+      html: string;
+    }): Promise<{ messageId?: string } | void>;
+  };
   DB: D1Database;
   ASSETS?: Fetcher;
   /** Test-only identity store; production uses D1 `DB`. */

@@ -178,4 +178,31 @@ describe('portal routes', () => {
     expect(await store.consumeMagicLink(token, Date.now())).toBeNull();
     expect(await store.consumeMagicLink(await sha256Hex(token), Date.now())).toBe('a@b.co');
   });
+
+  it('sends magic links through the Cloudflare EMAIL binding', async () => {
+    const store = memoryIdentityStore();
+    const send = vi.fn(async () => ({ messageId: 'msg_1' }));
+    const env = testEnv({
+      IDENTITY_STORE: store,
+      EMAIL_FROM: 'noreply@clocktower.finance',
+      EMAIL: { send },
+    });
+    const res = await app.request(
+      '/api/auth/email',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'dev@example.com' }),
+      },
+      env,
+    );
+    expect(res.status).toBe(200);
+    expect(send).toHaveBeenCalledOnce();
+    const payload = send.mock.calls[0][0];
+    expect(payload.from).toBe('noreply@clocktower.finance');
+    expect(payload.to).toBe('dev@example.com');
+    expect(payload.subject).toContain('Clocktower');
+    expect(payload.html).toContain('/api/auth/email/callback?token=');
+    expect((await res.json()) as { devLink?: string }).not.toHaveProperty('devLink');
+  });
 });
