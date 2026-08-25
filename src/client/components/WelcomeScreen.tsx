@@ -51,9 +51,9 @@ export function WelcomeScreen({ error, busy, sentTo, devLink, onEmailSubmit }: P
 
   return (
     <section className={styles.welcomeCard}>
-      <h1>Sign in to Clocktower Developers</h1>
+      <h1>Sign in</h1>
       <p>
-        Create a free account to mint REST API keys. MCP agents continue to use x402 — not API keys.
+        Free REST API keys for integrators. MCP agents keep using x402.
       </p>
       {error && (
         <div className={styles.error} role="alert">
