@@ -14,6 +14,19 @@ afterEach(() => {
 });
 
 describe('keysProxy', () => {
+  it('maps fetch failures to a local API hint', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('Network connection lost');
+      }),
+    );
+
+    await expect(listKeysForSubject(API, SECRET, 'dev_1')).rejects.toThrow(
+      /Cannot reach Clocktower API at http:\/\/127\.0\.0\.1:8787/,
+    );
+  });
+
   it('lists keys with admin Authorization header', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo) => {
       expect(String(input)).toContain('/api/developer/keys?subjectId=dev_1');

@@ -33,6 +33,17 @@ function apiUrl(apiBase: string, path: string): string {
   return `${base}${stripped}`;
 }
 
+async function fetchApi(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    const origin = new URL(url).origin;
+    throw new Error(
+      `Cannot reach Clocktower API at ${origin}. Start clocktower-api locally (npm run dev on :8787).`,
+    );
+  }
+}
+
 export async function listKeysForSubject(
   apiBase: string,
   adminSecret: string,
@@ -42,7 +53,7 @@ export async function listKeysForSubject(
     apiBase,
     `/api/developer/keys?subjectId=${encodeURIComponent(subjectId)}`,
   );
-  const res = await fetch(url, { headers: adminHeaders(adminSecret) });
+  const res = await fetchApi(url, { headers: adminHeaders(adminSecret) });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`List keys failed (${res.status}): ${text}`);
@@ -58,7 +69,7 @@ export async function createKeyForSubject(
   label?: string,
 ): Promise<CreateKeyResult> {
   const url = apiUrl(apiBase, '/api/developer/keys');
-  const res = await fetch(url, {
+  const res = await fetchApi(url, {
     method: 'POST',
     headers: adminHeaders(adminSecret),
     body: JSON.stringify({
@@ -95,7 +106,7 @@ export async function revokeKeyForSubject(
   }
 
   const url = apiUrl(apiBase, `/api/developer/keys/${encodeURIComponent(keyId)}`);
-  const res = await fetch(url, {
+  const res = await fetchApi(url, {
     method: 'DELETE',
     headers: adminHeaders(adminSecret),
   });
