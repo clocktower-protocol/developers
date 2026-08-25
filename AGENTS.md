@@ -30,13 +30,19 @@ npm run build
 npm run deploy   # ask before production
 ```
 
+Local keys need **clocktower-api** on `:8787` (`CLOCKTOWER_API_BASE` in `.dev.vars`). Magic links: `EMAIL_DEV_ECHO=true` (UI shows the link). Do not set `send_email.remote: true` for day-to-day `wrangler dev` — that opens a Cloudflare tunnel and surfaces as “Network connection lost.”
+
+`wrangler.jsonc` must keep `"run_worker_first": ["/api/*"]` so OAuth and magic-link callbacks hit the Worker, not Assets.
+
 ## API contract (upstream)
 
-- `POST /developer/keys` — admin secret, body `{ subjectId, label? }`
-- `GET /developer/keys?subjectId=`
-- `DELETE /developer/keys/:id`
+Production (`api.clocktower.finance`): `/developer/keys`. Local `wrangler dev` and `*.workers.dev`: `/api/developer/keys`. `src/server/keysProxy.ts` picks the prefix from `CLOCKTOWER_API_BASE`.
 
-Portal browser surface: `/api/session`, `/api/keys`, `/api/keys/:id`, `/api/auth/*`, `/api/health`.
+- `POST …/developer/keys` — admin secret, body `{ subjectId, label? }`
+- `GET …/developer/keys?subjectId=`
+- `DELETE …/developer/keys/:id`
+
+Portal browser surface: `/api/session`, `/api/keys`, `/api/keys/:id`, `/api/auth/*` (GitHub, Google, email, logout), `/api/health`.
 
 ## Ask before
 
@@ -49,3 +55,4 @@ Portal browser surface: `/api/session`, `/api/keys`, `/api/keys/:id`, `/api/auth
 
 When upstream key API paths or admin auth change, update `src/server/keysProxy.ts` and tests in the same commit.
 When OAuth callback URLs or D1 identity schema change, update `src/server/auth.ts` / `migrations/` and tests in the same commit.
+When Email Service or `EMAIL_DEV_ECHO` behavior changes, update `src/server/auth.ts`, `wrangler.jsonc` `send_email`, and tests in the same commit.

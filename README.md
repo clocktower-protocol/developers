@@ -32,13 +32,19 @@ Browser (React SPA)
 
 ### 1. API
 
-Run `clocktower-api` with developer keys enabled and:
+The portal proxies mint/list/revoke to **local** `clocktower-api` (`CLOCKTOWER_API_BASE=http://127.0.0.1:8787`). Production `api.clocktower.finance` is not public yet.
+
+In a second terminal:
 
 ```bash
-# in clocktower-api .dev.vars
-DEVELOPER_KEYS_ADMIN_SECRET=<same-secret-min-32-chars>
-DEVELOPER_KEYS_ENABLED=true
+cd clocktower-api
+# .dev.vars must include:
+# DEVELOPER_KEYS_ADMIN_SECRET=<same-secret-min-32-chars>
+# DEVELOPER_KEYS_ENABLED=true
+npm run dev
 ```
+
+If the API is not running, the dashboard shows that it cannot reach `:8787` (workerd otherwise reports “Network connection lost”).
 
 ### 2. Portal
 
@@ -60,7 +66,7 @@ OAuth callback URLs for local apps:
 - `http://127.0.0.1:5173/api/auth/github/callback`
 - `http://127.0.0.1:5173/api/auth/google/callback`
 
-With `EMAIL_DEV_ECHO=true`, the UI shows the magic link so you can sign in without sending mail. Production uses the Cloudflare Email Service binding (`EMAIL`), same as clocktower-caller notifications.
+With `EMAIL_DEV_ECHO=true`, the UI shows the magic link so you can sign in without sending mail. Local `wrangler dev` simulates the `EMAIL` binding (no Cloudflare tunnel). Production uses Cloudflare Email Service, same as clocktower-caller.
 
 ### 3. Try a key
 
@@ -102,13 +108,18 @@ Replace the placeholder `database_id` in `wrangler.jsonc` with `wrangler d1 crea
 
 ## Deploy
 
+Create a real D1 database, put its id in `wrangler.jsonc` (replace the placeholder), then:
+
 ```bash
+wrangler d1 create clocktower-developers
 wrangler secret put DEVELOPER_KEYS_ADMIN_SECRET
 wrangler secret put SESSION_SECRET
 wrangler secret put GITHUB_CLIENT_SECRET
 wrangler secret put GOOGLE_CLIENT_SECRET
 npm run deploy
 ```
+
+`wrangler deploy` applies D1 migrations. Set `GITHUB_CLIENT_ID` / `GOOGLE_CLIENT_ID` as Worker vars (not `VITE_`). Leave `send_email` without `remote: true`; production binds Email Service directly.
 
 Onboard the sending domain under Cloudflare Dashboard → **Email Sending** (Workers Paid), then set `EMAIL_FROM` to a verified address on that domain. There is no third-party email API key.
 
