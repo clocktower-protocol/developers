@@ -19,7 +19,7 @@
     {
       "binding": "DB",
       "database_name": "clocktower-developers",
-      "database_id": "00000000-0000-0000-0000-000000000001",
+      "database_id": "9ba8a066-951e-42fd-8cc6-0fa280000d6a",
       "migrations_dir": "migrations"
     }
   ],
