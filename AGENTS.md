@@ -42,7 +42,7 @@ Production (`api.clocktower.finance`): `/developer/keys`. Local `wrangler dev` a
 - `GET …/developer/keys?subjectId=`
 - `DELETE …/developer/keys/:id`
 
-Portal browser surface: `/api/session`, `/api/keys`, `/api/keys/:id`, `/api/auth/*` (GitHub, Google, email, logout), `/api/health`.
+Portal browser surface: `/api/session`, `/api/keys`, `/api/keys/:id`, `/api/auth/*` (GitHub, email, logout), `/api/health`.
 
 ## Ask before
 

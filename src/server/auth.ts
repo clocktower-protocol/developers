@@ -1,9 +1,8 @@
 import { Hono } from 'hono';
-import { GitHub, Google, generateCodeVerifier, generateState } from 'arctic';
+import { GitHub, generateState } from 'arctic';
 import type { PortalEnv } from './env.js';
 import {
   githubCredentials,
-  googleCredentials,
   publicAppOrigin,
   requireDb,
   requireSessionSecret,
@@ -42,7 +41,7 @@ function appHome(env: PortalEnv, request: Request, error?: string): string {
   return error ? `${origin}/?error=${encodeURIComponent(error)}` : `${origin}/`;
 }
 
-function oauthRedirectUri(env: PortalEnv, request: Request, provider: 'github' | 'google' | 'email'): string {
+function oauthRedirectUri(env: PortalEnv, request: Request, provider: 'github' | 'email'): string {
   return `${publicAppOrigin(env, request)}/api/auth/${provider}/callback`;
 }
 
@@ -113,22 +112,6 @@ async function githubProfile(accessToken: string): Promise<{ id: string; email: 
   return { id: String(user.id), email };
 }
 
-async function googleProfile(accessToken: string): Promise<{ id: string; email: string | null }> {
-  const res = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) {
-    throw new Error('Google profile request failed');
-  }
-  const user = (await res.json()) as {
-    sub: string;
-    email?: string;
-    email_verified?: boolean;
-  };
-  const email = user.email_verified && user.email ? user.email : null;
-  return { id: user.sub, email };
-}
-
 export function createAuthApp(): Hono<{ Bindings: AuthBindings; Variables: AuthVariables }> {
   const auth = new Hono<{ Bindings: AuthBindings; Variables: AuthVariables }>();
 
@@ -166,55 +149,6 @@ export function createAuthApp(): Hono<{ Bindings: AuthBindings; Variables: AuthV
       const store = storeFromEnv(c.env, c.get('identityStore'));
       const payload = await completeSignIn(store, {
         provider: 'github',
-        providerUserId: profile.id,
-        email: profile.email,
-      });
-      return redirect(appHome(c.env, c.req.raw), await sessionCookies(c.env, c.req.raw, payload));
-    } catch {
-      return redirect(appHome(c.env, c.req.raw, 'oauth'));
-    }
-  });
-
-  auth.get('/google', async (c) => {
-    const creds = googleCredentials(c.env);
-    if (!creds) {
-      return json({ error: 'Google sign-in is not configured', code: 'CONFIG_ERROR' }, 503);
-    }
-    const state = generateState();
-    const verifier = generateCodeVerifier();
-    const client = new Google(creds.clientId, creds.clientSecret, oauthRedirectUri(c.env, c.req.raw, 'google'));
-    const url = client.createAuthorizationURL(state, verifier, ['openid', 'email', 'profile']);
-    const secure = wantsSecureCookie(c.req.raw, c.env.PUBLIC_APP_ORIGIN);
-    return redirect(url.toString(), [
-      buildOauthCookie(OAUTH_STATE_COOKIE, state, { secure }),
-      buildOauthCookie(OAUTH_VERIFIER_COOKIE, verifier, { secure }),
-    ]);
-  });
-
-  auth.get('/google/callback', async (c) => {
-    const creds = googleCredentials(c.env);
-    if (!creds) {
-      return json({ error: 'Google sign-in is not configured', code: 'CONFIG_ERROR' }, 503);
-    }
-    const code = c.req.query('code');
-    const state = c.req.query('state');
-    const cookieHeader = c.req.header('Cookie') ?? null;
-    const stored = parseCookieHeader(cookieHeader, OAUTH_STATE_COOKIE);
-    const verifier = parseCookieHeader(cookieHeader, OAUTH_VERIFIER_COOKIE);
-    if (!code || !state || !stored || stored !== state || !verifier) {
-      return json({ error: 'Invalid OAuth state', code: 'OAUTH_STATE' }, 400);
-    }
-    try {
-      const client = new Google(
-        creds.clientId,
-        creds.clientSecret,
-        oauthRedirectUri(c.env, c.req.raw, 'google'),
-      );
-      const tokens = await client.validateAuthorizationCode(code, verifier);
-      const profile = await googleProfile(tokens.accessToken());
-      const store = storeFromEnv(c.env, c.get('identityStore'));
-      const payload = await completeSignIn(store, {
-        provider: 'google',
         providerUserId: profile.id,
         email: profile.email,
       });

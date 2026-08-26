@@ -1,4 +1,4 @@
-export type AuthProvider = 'github' | 'google' | 'email';
+export type AuthProvider = 'github' | 'email';
 
 export type SessionInfo =
   | { authenticated: false }

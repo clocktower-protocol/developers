@@ -4,7 +4,7 @@ Developer portal for **Clocktower REST API keys** (`ctk_…` developer tier).
 
 Linked visually and conceptually with [clocktower-docs](https://clocktower.finance) (dark theme, Satoshi font, sky-blue accents). **MCP remains x402** — this portal only mints REST keys.
 
-Sign-in follows the Uniswap developer dashboard model: **GitHub, Google, or a passwordless email magic link**. There are no guest sessions and no passwords.
+Sign-in is **GitHub or a passwordless email magic link**. There are no guest sessions and no passwords.
 
 ## Architecture
 
@@ -21,7 +21,7 @@ Browser (React SPA)
 
 ## Features
 
-- Sign in with GitHub, Google, or email magic link
+- Sign in with GitHub or email magic link
 - Create key (optional label)
 - List active keys
 - Reveal token **once** + copy
@@ -51,7 +51,7 @@ If the API is not running, the dashboard shows that it cannot reach `:8787` (wor
 ```bash
 cd clocktower-developers
 cp .dev.vars.example .dev.vars
-# edit .dev.vars — same admin secret, CLOCKTOWER_API_BASE, OAuth apps, EMAIL_DEV_ECHO=true
+# edit .dev.vars — same admin secret, CLOCKTOWER_API_BASE, GitHub OAuth, EMAIL_DEV_ECHO=true
 npm install
 npm run db:migrate:local
 npm run dev
@@ -61,10 +61,9 @@ npm run dev
 - Worker: http://127.0.0.1:8788
 - D1 migrations apply automatically under `wrangler deploy`. For local SQLite, run `npm run db:migrate:local` once (or after pulling new migrations).
 
-OAuth callback URLs for local apps:
+OAuth callback URL for local GitHub apps:
 
 - `http://127.0.0.1:5173/api/auth/github/callback`
-- `http://127.0.0.1:5173/api/auth/google/callback`
 
 With `EMAIL_DEV_ECHO=true`, the UI shows the magic link so you can sign in without sending mail. Local `wrangler dev` simulates the `EMAIL` binding (no Cloudflare tunnel). Production uses Cloudflare Email Service, same as clocktower-caller.
 
@@ -96,7 +95,6 @@ curl -H "Authorization: Bearer ctk_…" \
 | `SESSION_SECRET` | Worker secret | Sign session cookies |
 | `PUBLIC_APP_ORIGIN` | Worker | Cookie Secure when https; OAuth redirect origin |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | Worker | GitHub OAuth |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Worker | Google OAuth |
 | `EMAIL` | `send_email` binding | Cloudflare Email Service (same as clocktower-caller) |
 | `EMAIL_FROM` | Worker | Verified sender on the onboarded domain |
 | `EMAIL_DEV_ECHO` | Worker | `true` returns the magic link in JSON (local only) |
@@ -115,20 +113,18 @@ wrangler d1 create clocktower-developers
 wrangler secret put DEVELOPER_KEYS_ADMIN_SECRET
 wrangler secret put SESSION_SECRET
 wrangler secret put GITHUB_CLIENT_SECRET
-wrangler secret put GOOGLE_CLIENT_SECRET
 npm run deploy
 ```
 
-`wrangler deploy` applies D1 migrations. Set `GITHUB_CLIENT_ID` / `GOOGLE_CLIENT_ID` as Worker vars (not `VITE_`). Leave `send_email` without `remote: true`; production binds Email Service directly.
+`wrangler deploy` applies D1 migrations. Set `GITHUB_CLIENT_ID` as a Worker var in `wrangler.jsonc` (not `VITE_`). Leave `send_email` without `remote: true`; production binds Email Service directly.
 
 Onboard the sending domain under Cloudflare Dashboard → **Email Sending** (Workers Paid), then set `EMAIL_FROM` to a verified address on that domain. There is no third-party email API key.
 
 Suggested host: `developers.clocktower.finance`. Add a docs navbar CTA when live.
 
-Production GitHub/Google apps must allow:
+Production GitHub OAuth apps must allow:
 
 - `https://developers.clocktower.finance/api/auth/github/callback`
-- `https://developers.clocktower.finance/api/auth/google/callback`
 
 ## Breaking change
 

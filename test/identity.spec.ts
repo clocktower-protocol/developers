@@ -38,19 +38,19 @@ describe('identity', () => {
     expect(user?.lastLoginAt).toBe(first.createdAt + 1000);
   });
 
-  it('links Google to an existing verified email', async () => {
+  it('links email sign-in to an existing verified GitHub email', async () => {
     const store = memoryIdentityStore();
     const github = await completeSignIn(store, {
       provider: 'github',
       providerUserId: '1',
       email: 'dev@clocktower.finance',
     });
-    const google = await completeSignIn(store, {
-      provider: 'google',
-      providerUserId: 'sub_9',
+    const email = await completeSignIn(store, {
+      provider: 'email',
+      providerUserId: 'dev@clocktower.finance',
       email: 'dev@clocktower.finance',
     });
-    expect(google.subjectId).toBe(github.subjectId);
+    expect(email.subjectId).toBe(github.subjectId);
   });
 
   it('keeps users without verified email as a new subject', async () => {

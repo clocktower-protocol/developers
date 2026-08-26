@@ -5,8 +5,6 @@ export type PortalEnv = {
   PUBLIC_APP_ORIGIN?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
-  GOOGLE_CLIENT_ID?: string;
-  GOOGLE_CLIENT_SECRET?: string;
   EMAIL_FROM?: string;
   EMAIL_DEV_ECHO?: string;
   /** Cloudflare Email Service binding (`send_email` name EMAIL), same as clocktower-caller. */
@@ -75,13 +73,6 @@ export function publicAppOrigin(env: PortalEnv, request: Request): string {
 export function githubCredentials(env: PortalEnv): { clientId: string; clientSecret: string } | null {
   const clientId = env.GITHUB_CLIENT_ID || '';
   const clientSecret = env.GITHUB_CLIENT_SECRET || '';
-  if (!clientId || !clientSecret) return null;
-  return { clientId, clientSecret };
-}
-
-export function googleCredentials(env: PortalEnv): { clientId: string; clientSecret: string } | null {
-  const clientId = env.GOOGLE_CLIENT_ID || '';
-  const clientSecret = env.GOOGLE_CLIENT_SECRET || '';
   if (!clientId || !clientSecret) return null;
   return { clientId, clientSecret };
 }

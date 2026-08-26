@@ -1,6 +1,6 @@
 import { bytesToHex, hexToBytes } from './cryptoUtil.js';
 
-export type AuthProvider = 'github' | 'google' | 'email';
+export type AuthProvider = 'github' | 'email';
 
 export type SessionPayload = {
   subjectId: string;
@@ -15,7 +15,7 @@ export const OAUTH_VERIFIER_COOKIE = 'ct_oauth_verifier';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 90; // 90 days
 const OAUTH_COOKIE_TTL_SECONDS = 60 * 10;
 
-const PROVIDERS = new Set<AuthProvider>(['github', 'google', 'email']);
+const PROVIDERS = new Set<AuthProvider>(['github', 'email']);
 
 async function importHmacKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(

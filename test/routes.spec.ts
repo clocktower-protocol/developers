@@ -4,7 +4,6 @@ import { memoryIdentityStore } from '../src/server/identity';
 import {
   SESSION_COOKIE,
   OAUTH_STATE_COOKIE,
-  OAUTH_VERIFIER_COOKIE,
   createSessionCookieValue,
   parseCookieHeader,
   type SessionPayload,
@@ -61,8 +60,6 @@ describe('portal routes', () => {
     const env = testEnv({
       GITHUB_CLIENT_ID: 'gh_id',
       GITHUB_CLIENT_SECRET: 'gh_secret',
-      GOOGLE_CLIENT_ID: 'go_id',
-      GOOGLE_CLIENT_SECRET: 'go_secret',
     });
     const missing = await app.request('/api/auth/github/callback?code=abc&state=x', {}, env);
     expect(missing.status).toBe(400);
@@ -74,36 +71,22 @@ describe('portal routes', () => {
       env,
     );
     expect(mismatched.status).toBe(400);
-
-    const google = await app.request(
-      '/api/auth/google/callback?code=abc&state=ok',
-      { headers: { Cookie: `${OAUTH_STATE_COOKIE}=ok` } },
-      env,
-    );
-    expect(google.status).toBe(400);
   });
 
-  it('starts GitHub and Google OAuth with state cookies', async () => {
+  it('starts GitHub OAuth with a state cookie', async () => {
     const env = testEnv({
       GITHUB_CLIENT_ID: 'gh_id',
       GITHUB_CLIENT_SECRET: 'gh_secret',
-      GOOGLE_CLIENT_ID: 'go_id',
-      GOOGLE_CLIENT_SECRET: 'go_secret',
     });
     const gh = await app.request('/api/auth/github', {}, env);
     expect(gh.status).toBe(302);
     expect(gh.headers.get('Location')).toContain('github.com');
     expect(gh.headers.get('Set-Cookie')).toContain(OAUTH_STATE_COOKIE);
+  });
 
-    const google = await app.request('/api/auth/google', {}, env);
-    expect(google.status).toBe(302);
-    expect(google.headers.get('Location')).toContain('accounts.google.com');
-    const cookieHeader =
-      typeof google.headers.getSetCookie === 'function'
-        ? google.headers.getSetCookie().join('; ')
-        : (google.headers.get('Set-Cookie') ?? '');
-    expect(cookieHeader).toContain(OAUTH_STATE_COOKIE);
-    expect(cookieHeader).toContain(OAUTH_VERIFIER_COOKIE);
+  it('does not expose Google OAuth routes', async () => {
+    const res = await app.request('/api/auth/google', {}, testEnv());
+    expect(res.status).toBe(404);
   });
 
   it('issues a magic link, consumes it once, and rejects reuse', async () => {
