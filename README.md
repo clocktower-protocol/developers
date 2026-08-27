@@ -32,7 +32,7 @@ Browser (React SPA)
 
 ### 1. API
 
-The portal proxies mint/list/revoke to **local** `clocktower-api` (`CLOCKTOWER_API_BASE=http://127.0.0.1:8787`). Production `api.clocktower.finance` is not public yet.
+The portal proxies mint/list/revoke to **local** `clocktower-api` (`CLOCKTOWER_API_BASE=http://127.0.0.1:8787` in `.dev.vars`).
 
 In a second terminal:
 
@@ -59,7 +59,7 @@ npm run dev
 
 - UI: http://127.0.0.1:5173 (Vite proxies `/api` → Worker :8788)
 - Worker: http://127.0.0.1:8788
-- D1 migrations apply automatically under `wrangler deploy`. For local SQLite, run `npm run db:migrate:local` once (or after pulling new migrations).
+- Local D1 is SQLite via `npm run db:migrate:local` (once, or after pulling new migrations). Production D1 is separate and already bound in `wrangler.jsonc`.
 
 OAuth callback URL for local GitHub apps:
 
@@ -90,39 +90,42 @@ curl -H "Authorization: Bearer ctk_…" \
 
 | Variable | Where | Purpose |
 |----------|--------|---------|
-| `CLOCKTOWER_API_BASE` | Worker | API origin |
+| `CLOCKTOWER_API_BASE` | Worker var | API origin (`wrangler.jsonc`) |
 | `DEVELOPER_KEYS_ADMIN_SECRET` | Worker secret | Mint/list/revoke against API |
 | `SESSION_SECRET` | Worker secret | Sign session cookies |
-| `PUBLIC_APP_ORIGIN` | Worker | Cookie Secure when https; OAuth redirect origin |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | Worker | GitHub OAuth |
+| `PUBLIC_APP_ORIGIN` | Worker var | Cookie Secure when https; OAuth redirect origin |
+| `GITHUB_CLIENT_ID` | Worker var | GitHub OAuth app id |
+| `GITHUB_CLIENT_SECRET` | Worker secret | GitHub OAuth app secret |
 | `EMAIL` | `send_email` binding | Cloudflare Email Service (same as clocktower-caller) |
-| `EMAIL_FROM` | Worker | Verified sender on the onboarded domain |
-| `EMAIL_DEV_ECHO` | Worker | `true` returns the magic link in JSON (local only) |
+| `EMAIL_FROM` | Worker var | Verified sender on the onboarded domain |
+| `EMAIL_DEV_ECHO` | Worker (local only) | `true` returns the magic link in JSON |
 | `DB` | D1 binding | Users, identities, magic links |
 
 Never use `VITE_` for secrets.
 
-Replace the placeholder `database_id` in `wrangler.jsonc` with `wrangler d1 create clocktower-developers` before production.
-
 ## Deploy
 
-Create a real D1 database, put its id in `wrangler.jsonc` (replace the placeholder), then:
+Production D1 (`clocktower-developers`) is already bound in `wrangler.jsonc`. Do not run `wrangler d1 create` again unless you intend to make a new database.
 
 ```bash
-wrangler d1 create clocktower-developers
-wrangler secret put DEVELOPER_KEYS_ADMIN_SECRET
-wrangler secret put SESSION_SECRET
-wrangler secret put GITHUB_CLIENT_SECRET
-npm run deploy
+npx wrangler d1 migrations apply clocktower-developers --remote
+npx wrangler secret put DEVELOPER_KEYS_ADMIN_SECRET
+npx wrangler secret put SESSION_SECRET
+npx wrangler secret put GITHUB_CLIENT_SECRET
 ```
 
-`wrangler deploy` applies D1 migrations. Set `GITHUB_CLIENT_ID` as a Worker var in `wrangler.jsonc` (not `VITE_`). Leave `send_email` without `remote: true`; production binds Email Service directly.
+Set `GITHUB_CLIENT_ID` as a plaintext Worker variable (dashboard **Variables and Secrets**, or a `vars` entry in `wrangler.jsonc` — not `VITE_`). `npx wrangler deploy` (and Workers Builds) apply any pending D1 migrations. Leave `send_email` without `remote: true`; production binds Email Service directly.
+
+Workers Builds (Git):
+
+| Setting | Command |
+|---------|---------|
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
 
 Onboard the sending domain under Cloudflare Dashboard → **Email Sending** (Workers Paid), then set `EMAIL_FROM` to a verified address on that domain. There is no third-party email API key.
 
-Suggested host: `developers.clocktower.finance`. Add a docs navbar CTA when live.
-
-Production GitHub OAuth apps must allow:
+Host: `developers.clocktower.finance`. Production GitHub OAuth apps must allow:
 
 - `https://developers.clocktower.finance/api/auth/github/callback`
 
