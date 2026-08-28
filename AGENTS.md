@@ -1,6 +1,6 @@
 # AGENTS.md — clocktower-developers
 
-Developer portal for Clocktower **REST API keys**. MCP is **not** in scope (x402 only).
+Developer portal for Clocktower **REST API and MCP keys**. Developer-tier `ctk_…` keys share the same limits on REST and MCP (no x402).
 
 ## Hard rules
 

@@ -20,7 +20,7 @@ describe('WelcomeScreen', () => {
       'href',
       '/api/auth/github',
     );
-    expect(screen.queryByRole('link', { name: /continue with google/i })).toBeNull();
+    expect(screen.getByText('Free REST API/MCP keys for developers.')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Email'), 'dev@example.com');
     await user.click(screen.getByRole('button', { name: /email me a sign-in link/i }));

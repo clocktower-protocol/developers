@@ -1,8 +1,8 @@
 # clocktower-developers
 
-Developer portal for **Clocktower REST API keys** (`ctk_…` developer tier).
+Developer portal for **Clocktower REST API and MCP keys** (`ctk_…` developer tier).
 
-Linked visually and conceptually with [clocktower-docs](https://clocktower.finance) (dark theme, Satoshi font, sky-blue accents). **MCP remains x402** — this portal only mints REST keys.
+Linked visually and conceptually with [clocktower-docs](https://clocktower.finance) (dark theme, Satoshi font, sky-blue accents). Keys use the same developer limits on REST and MCP (no x402).
 
 Sign-in is **GitHub or a passwordless email magic link**. There are no guest sessions and no passwords.
 

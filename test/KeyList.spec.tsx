@@ -6,7 +6,9 @@ import { KeyList } from '../src/client/components/KeyList';
 describe('KeyList', () => {
   it('shows empty state', () => {
     render(<KeyList keys={[]} busyId={null} onRevoke={() => {}} />);
-    expect(screen.getByTestId('empty-keys')).toBeInTheDocument();
+    expect(screen.getByTestId('empty-keys')).toHaveTextContent(
+      'No API keys yet. Create one to call Clocktower REST and MCP with higher free limits.',
+    );
   });
 
   it('renders keys and confirms revoke', async () => {

@@ -12,7 +12,7 @@ export function KeyList({ keys, busyId, onRevoke }: Props) {
   if (keys.length === 0) {
     return (
       <div className={styles.empty} data-testid="empty-keys">
-        No API keys yet. Create one to call the Clocktower REST API with higher free limits.
+        No API keys yet. Create one to call Clocktower REST and MCP with higher free limits.
       </div>
     );
   }

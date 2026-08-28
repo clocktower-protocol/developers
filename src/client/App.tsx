@@ -225,7 +225,7 @@ export default function App() {
             <section className={styles.hero}>
               <h1>Developer API keys</h1>
               <p>
-                Free REST API keys for integrators. Higher limits than anonymous access.
+                Free REST API/MCP keys for developers. Higher limits than anonymous access.
               </p>
             </section>
 
@@ -252,7 +252,7 @@ export default function App() {
             <section className={styles.help}>
               <h3>Using your key</h3>
               <p>
-                Send the key on REST requests only. Never commit it or expose it in frontend apps
+                Use the same key for REST and MCP. Never commit it or expose it in frontend apps
                 that call the API from a browser without a backend.
               </p>
               <div className={styles.curlBlock}>

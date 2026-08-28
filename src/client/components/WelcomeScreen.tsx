@@ -30,7 +30,7 @@ export function WelcomeScreen({ error, busy, sentTo, devLink, onEmailSubmit }: P
     <section className={styles.welcomeCard}>
       <h1>Sign in</h1>
       <p>
-        Free REST API keys for integrators.
+        Free REST API/MCP keys for developers.
       </p>
       {error && (
         <div className={styles.error} role="alert">
