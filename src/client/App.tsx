@@ -187,7 +187,7 @@ export default function App() {
   return (
     <div className={styles.shell}>
       <header className={styles.nav}>
-        <a className={styles.brand} href="/">
+        <a className={styles.brand} href="https://clocktower.finance">
           Clocktower
         </a>
         <nav className={styles.navLinks}>
