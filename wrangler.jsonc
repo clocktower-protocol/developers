@@ -13,7 +13,7 @@
   "vars": {
     "CLOCKTOWER_API_BASE": "https://api.clocktower.finance",
     "PUBLIC_APP_ORIGIN": "https://developers.clocktower.finance",
-    "EMAIL_FROM": "noreply@clocktower.finance"
+    "EMAIL_FROM": "noreply@developers.clocktower.finance"
   },
   "d1_databases": [
     {
