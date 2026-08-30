@@ -33,6 +33,7 @@ const authed: SessionPayload = {
 };
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -80,8 +81,48 @@ describe('portal routes', () => {
     });
     const gh = await app.request('/api/auth/github', {}, env);
     expect(gh.status).toBe(302);
-    expect(gh.headers.get('Location')).toContain('github.com');
-    expect(gh.headers.get('Set-Cookie')).toContain(OAUTH_STATE_COOKIE);
+    const location = new URL(gh.headers.get('Location') ?? '');
+    expect(location.origin + location.pathname).toBe('https://github.com/login/oauth/authorize');
+    expect(location.searchParams.get('client_id')).toBe('gh_id');
+    expect(location.searchParams.get('scope')).toBe('read:user user:email');
+    const state = location.searchParams.get('state');
+    expect(state).toBeTruthy();
+    expect(gh.headers.get('Set-Cookie')).toContain(`${OAUTH_STATE_COOKIE}=${state}`);
+  });
+
+  it('completes GitHub OAuth and sets a session cookie', async () => {
+    const env = testEnv({
+      GITHUB_CLIENT_ID: 'gh_id',
+      GITHUB_CLIENT_SECRET: 'gh_secret',
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input instanceof Request ? input.url : input);
+        if (url.includes('/login/oauth/access_token')) {
+          return new Response(JSON.stringify({ access_token: 'gho_test' }), { status: 200 });
+        }
+        if (url.includes('api.github.com/user/emails')) {
+          return new Response(
+            JSON.stringify([{ email: 'gh@example.com', primary: true, verified: true }]),
+            { status: 200 },
+          );
+        }
+        if (url.includes('api.github.com/user')) {
+          return new Response(JSON.stringify({ id: 42, email: null }), { status: 200 });
+        }
+        throw new Error(`unexpected fetch ${url}`);
+      }),
+    );
+
+    const res = await app.request(
+      '/api/auth/github/callback?code=abc&state=expected',
+      { headers: { Cookie: `${OAUTH_STATE_COOKIE}=expected` } },
+      env,
+    );
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toBe('http://127.0.0.1:5173/');
+    expect(res.headers.get('Set-Cookie')).toContain(SESSION_COOKIE);
   });
 
   it('does not expose Google OAuth routes', async () => {

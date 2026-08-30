@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { GitHub, generateState } from 'arctic';
 import type { PortalEnv } from './env.js';
 import {
   githubCredentials,
@@ -9,6 +8,11 @@ import {
 } from './env.js';
 import { json, redirect } from './http.js';
 import { completeSignIn, d1IdentityStore, normalizeEmail, type IdentityStore } from './identity.js';
+import {
+  createGitHubAuthorizeUrl,
+  exchangeGitHubAccessToken,
+  oauthStatesMatch,
+} from './githubOAuth.js';
 import {
   OAUTH_STATE_COOKIE,
   OAUTH_VERIFIER_COOKIE,
@@ -120,9 +124,13 @@ export function createAuthApp(): Hono<{ Bindings: AuthBindings; Variables: AuthV
     if (!creds) {
       return json({ error: 'GitHub sign-in is not configured', code: 'CONFIG_ERROR' }, 503);
     }
-    const state = generateState();
-    const client = new GitHub(creds.clientId, creds.clientSecret, oauthRedirectUri(c.env, c.req.raw, 'github'));
-    const url = client.createAuthorizationURL(state, ['read:user', 'user:email']);
+    const state = randomHex(32);
+    const url = createGitHubAuthorizeUrl({
+      clientId: creds.clientId,
+      redirectUri: oauthRedirectUri(c.env, c.req.raw, 'github'),
+      state,
+      scopes: ['read:user', 'user:email'],
+    });
     const secure = wantsSecureCookie(c.req.raw, c.env.PUBLIC_APP_ORIGIN);
     return redirect(url.toString(), [buildOauthCookie(OAUTH_STATE_COOKIE, state, { secure })]);
   });
@@ -135,17 +143,17 @@ export function createAuthApp(): Hono<{ Bindings: AuthBindings; Variables: AuthV
     const code = c.req.query('code');
     const state = c.req.query('state');
     const stored = parseCookieHeader(c.req.header('Cookie') ?? null, OAUTH_STATE_COOKIE);
-    if (!code || !state || !stored || stored !== state) {
+    if (!code || !state || !stored || !oauthStatesMatch(stored, state)) {
       return json({ error: 'Invalid OAuth state', code: 'OAUTH_STATE' }, 400);
     }
     try {
-      const client = new GitHub(
-        creds.clientId,
-        creds.clientSecret,
-        oauthRedirectUri(c.env, c.req.raw, 'github'),
-      );
-      const tokens = await client.validateAuthorizationCode(code);
-      const profile = await githubProfile(tokens.accessToken());
+      const accessToken = await exchangeGitHubAccessToken({
+        clientId: creds.clientId,
+        clientSecret: creds.clientSecret,
+        redirectUri: oauthRedirectUri(c.env, c.req.raw, 'github'),
+        code,
+      });
+      const profile = await githubProfile(accessToken);
       const store = storeFromEnv(c.env, c.get('identityStore'));
       const payload = await completeSignIn(store, {
         provider: 'github',
