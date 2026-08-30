@@ -44,6 +44,21 @@ describe('portal routes', () => {
     expect(await res.json()).toEqual({ authenticated: false });
   });
 
+  it('reports a missing admin secret as CONFIG_ERROR after sign-in', async () => {
+    const cookie = await createSessionCookieValue(SECRET, authed, false);
+    const env = testEnv({ DEVELOPER_KEYS_ADMIN_SECRET: '' });
+    const res = await app.request(
+      '/api/keys',
+      { headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({
+      code: 'CONFIG_ERROR',
+      error: expect.stringMatching(/not bound on this Worker/),
+    });
+  });
+
   it('returns 401 for key routes without a session', async () => {
     const env = testEnv();
     const getRes = await app.request('/api/keys', {}, env);

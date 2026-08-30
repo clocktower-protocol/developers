@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireKeysEnv, requireSessionSecret, type PortalEnv } from './env.js';
+import { ConfigError, requireKeysEnv, requireSessionSecret, type PortalEnv } from './env.js';
 import { json } from './http.js';
 import { createAuthApp, sessionResponse } from './auth.js';
 import { getSession, wantsSecureCookie } from './session.js';
@@ -80,6 +80,9 @@ app.get('/api/keys', async (c) => {
       keys: keys.filter((k) => !k.revokedAt),
     });
   } catch (err) {
+    if (err instanceof ConfigError) {
+      return json({ error: err.message, code: err.code }, 500);
+    }
     const message = err instanceof Error ? err.message : String(err);
     return json({ error: message, code: 'UPSTREAM_ERROR' }, 502);
   }
@@ -102,6 +105,9 @@ app.post('/api/keys', async (c) => {
     const result = await createKeyForSubject(apiBase, adminSecret, subjectId, label);
     return json(result, 201);
   } catch (err) {
+    if (err instanceof ConfigError) {
+      return json({ error: err.message, code: err.code }, 500);
+    }
     const e = err as Error & { status?: number; body?: string };
     const status = e.status === 409 ? 409 : e.status === 429 ? 429 : 502;
     let code = 'UPSTREAM_ERROR';
@@ -122,6 +128,9 @@ app.delete('/api/keys/:id', async (c) => {
     const key = await revokeKeyForSubject(apiBase, adminSecret, subjectId, id);
     return json({ key, revoked: true });
   } catch (err) {
+    if (err instanceof ConfigError) {
+      return json({ error: err.message, code: err.code }, 500);
+    }
     const e = err as Error & { status?: number };
     const status = e.status === 404 ? 404 : 502;
     return json(
